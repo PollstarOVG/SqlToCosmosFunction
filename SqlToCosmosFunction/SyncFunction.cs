@@ -1,24 +1,21 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using SqlToCosmosFunction.Services;
+using SqlToCosmosFunction.Interfaces;
 
 namespace SqlToCosmosFunction
 {
     public class SyncFunction
     {
         private readonly ILogger<SyncFunction> _logger;
-        private readonly SqlService _sqlService;    
-        private readonly CosmosService _cosmosService;
-        private readonly int _batchSize;
+        private readonly ISqlService _sqlService;
+        private readonly ICosmosService _cosmosService;
 
-        public SyncFunction(ILogger<SyncFunction> logger, SqlService sqlService, CosmosService cosmosService, IConfiguration config)
+        public SyncFunction(ILogger<SyncFunction> logger, ISqlService sqlService, ICosmosService cosmosService)
         {
             _logger = logger;
-            _sqlService = sqlService;   
+            _sqlService = sqlService;
             _cosmosService = cosmosService;
-            _batchSize = int.Parse(config["BatchSize"] ?? "100");
         }
 
         [Function("SyncFunction")]
@@ -26,20 +23,20 @@ namespace SqlToCosmosFunction
         {
             try
             {
-                var data = await _sqlService.GetDataAsync(_batchSize);
-                if (data == null || !data.Any())
+                if (req == null)
                 {
-                    _logger.LogInformation("No data found to sync.");
-                }
+                    _logger.LogWarning("Invalid or missing 'batchSize' query parameter.");
 
-                if (data.Any())
-                {
-                    await _cosmosService.UpsertBatchAsync(data);
-                    _logger.LogInformation($"Successfully synced {data.Count()} items to Cosmos DB.");
-                }
-                else
-                {
-                    _logger.LogInformation("No new data to sync.");
+                    var data = await _sqlService.GetDataAsync(1);
+                    if (data == null || !data.Any())
+                    {
+                        _logger.LogInformation("No data found to sync.");
+                    }
+                    else
+                    {
+                        await _cosmosService.UpsertBatchAsync(data);
+                        
+                    }
                 }
             }
             catch (Exception ex)

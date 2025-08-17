@@ -1,13 +1,29 @@
-using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SqlToCosmosFunction.Interfaces;
+using SqlToCosmosFunction.Services;
+using static SqlToCosmosFunction.Options.DatabaseOptions;
 
-var builder = FunctionsApplication.CreateBuilder(args);
+var host = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureAppConfiguration(config =>
+    {
+        config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+        config.AddEnvironmentVariables();
+    })
+    .ConfigureServices((context, services) =>
+    {
+        IConfiguration configuration = context.Configuration;
 
-builder.ConfigureFunctionsWebApplication();
+        services.Configure<SqlDbSettings>(configuration.GetSection("SqlDb"));
+        services.Configure<CosmosDbSettings>(configuration.GetSection("CosmosDb"));
 
-// Application Insights isn't enabled by default. See https://aka.ms/AAt8mw4.
-// builder.Services
-//     .AddApplicationInsightsTelemetryWorkerService()
-//     .ConfigureFunctionsApplicationInsights();
+        services.AddScoped<ISqlService, SqlService>();
+        services.AddScoped<ICosmosService, CosmosService>();
 
-builder.Build().Run();
+        services.BuildServiceProvider().GetRequiredService<ISqlService>();
+    })
+    .Build();
+
+host.Run();

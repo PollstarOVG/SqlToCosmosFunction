@@ -1,12 +1,31 @@
-﻿namespace SqlToCosmosFunction.Models
+﻿using Newtonsoft.Json;
+
+namespace SqlToCosmosFunction.Models
 {
     public class Artist
     {
-        public int Id { get; set; }
-        public required string ArtistName { get; set; }
-        public required string SortName { get; set; }
-        public required string SearchName { get; set; }
-        public required string Description { get; set; }    
-        public required List<string> Genre { get; set; } 
+        [JsonProperty("id")]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+
+        [JsonProperty("artistId")]
+        public string ArtistId { get; set; } = string.Empty;
+
+        [JsonProperty("type")]
+        public string Type { get; set; } = "artist";
+
+        [JsonProperty("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonProperty("sortName")]
+        public string SortName { get; set; } = string.Empty;
+
+        [JsonProperty("searchName")]
+        public string SearchName { get; set; } = string.Empty;
+
+        [JsonProperty("artistType")]
+        public string ArtistType { get; set; } = string.Empty;
+
+        [JsonProperty("genre")]
+        public List<string> Genre { get; set; } = new();
     }
 }
